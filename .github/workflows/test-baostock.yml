@@ -1,0 +1,38 @@
+name: test-baostock
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: install
+        run: pip install baostock
+      - name: probe
+        run: |
+          python - <<'PY'
+          import baostock as bs
+          lg = bs.login()
+          print("LOGIN", lg.error_code, lg.error_msg)
+          rs = bs.query_history_k_data_plus(
+              "sh.600000",
+              "date,code,close",
+              start_date="2026-10-20",
+              end_date="2026-10-30",
+              frequency="d",
+              adjustflag="2",
+          )
+          print("QUERY", rs.error_code, rs.error_msg)
+          rows = []
+          while rs.next():
+              rows.append(rs.get_row_data())
+          print("ROWS", len(rows))
+          print(rows[:3])
+          bs.logout()
+          PY
