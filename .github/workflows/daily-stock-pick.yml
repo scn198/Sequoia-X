@@ -1,0 +1,52 @@
+name: daily-stock-pick
+
+on:
+  schedule:
+    # UTC 11:15 = 北京时间 19:15，周一到周五
+    - cron: "15 11 * * 1-5"
+  workflow_dispatch:
+    inputs:
+      backfill:
+        description: "勾选则先回填全市场历史K线（首次运行必须勾）"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: daily-stock-pick
+  cancel-in-progress: false
+
+jobs:
+  pick:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: 恢复本地 SQLite 缓存
+        uses: actions/cache@v4
+        with:
+          path: data
+          key: sequoia-db-${{ github.run_id }}
+          restore-keys: |
+            sequoia-db-
+
+      - name: 安装依赖
+        run: pip install -e .
+
+      - name: 回填全市场历史K线
+        if: inputs.backfill
+        env:
+          PUSHPLUS_TOKEN: ${{ secrets.PUSHPLUS_TOKEN }}
+        run: python main.py --backfill
+
+      - name: 选股并推送微信
+        env:
+          PUSHPLUS_TOKEN: ${{ secrets.PUSHPLUS_TOKEN }}
+        run: python main.py
