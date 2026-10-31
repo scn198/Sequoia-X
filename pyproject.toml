@@ -19,6 +19,17 @@ dev = [
     "pytest-mock>=3.12",
 ]
 
+# 显式声明包列表：否则 setuptools 的 flat-layout 自动发现会把运行时生成的
+# data/ 目录当成第二个顶层包，导致 "Multiple top-level packages discovered" 而安装失败。
+[tool.setuptools]
+packages = [
+    "sequoia_x",
+    "sequoia_x.core",
+    "sequoia_x.data",
+    "sequoia_x.notify",
+    "sequoia_x.strategy",
+]
+
 [tool.ruff]
 line-length = 100
 target-version = "py311"
