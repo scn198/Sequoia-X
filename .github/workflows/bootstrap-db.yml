@@ -1,0 +1,44 @@
+name: bootstrap-db
+
+on:
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: bootstrap-db
+  cancel-in-progress: false
+
+jobs:
+  bootstrap:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: 恢复/保存 SQLite 缓存
+        uses: actions/cache@v4
+        with:
+          path: data
+          key: sequoia-db-${{ github.run_id }}
+          restore-keys: |
+            sequoia-db-
+
+      - name: 安装依赖
+        run: pip install -e .
+
+      - name: 初始化近 60 天数据
+        env:
+          PUSHPLUS_TOKEN: ${{ secrets.PUSHPLUS_TOKEN }}
+          SEED_DAYS: "60"
+        run: python bootstrap.py
+
+      - name: 选股并推送微信
+        env:
+          PUSHPLUS_TOKEN: ${{ secrets.PUSHPLUS_TOKEN }}
+        run: python main.py
